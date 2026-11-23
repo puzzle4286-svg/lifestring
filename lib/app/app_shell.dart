@@ -62,10 +62,10 @@ class _AppShellState extends State<AppShell> {
   late final AppLifecycleListener _lifecycle;
   int _index = 0;
 
-  /// Selected Insights period; kept here so History can open a day in it.
-  late InsightPeriod _insightsPeriod = InsightPeriod(
-    InsightUnit.day,
-    widget.clock.now(),
+  /// Selected Insights period, shared by Insights and its Daily timeline;
+  /// kept here so History can open a day in it.
+  late final _insightsPeriod = ValueNotifier(
+    InsightPeriod(InsightUnit.day, widget.clock.now()),
   );
 
   /// Everything that can change Insights numbers.
@@ -76,7 +76,7 @@ class _AppShellState extends State<AppShell> {
   ]);
 
   void _openDayInsights(DateTime day) => setState(() {
-    _insightsPeriod = InsightPeriod(InsightUnit.day, day);
+    _insightsPeriod.value = InsightPeriod(InsightUnit.day, day);
     _index = 2;
   });
 
@@ -89,6 +89,7 @@ class _AppShellState extends State<AppShell> {
   @override
   void dispose() {
     _lifecycle.dispose();
+    _insightsPeriod.dispose();
     super.dispose();
   }
 
@@ -116,8 +117,8 @@ class _AppShellState extends State<AppShell> {
         ),
         2 => InsightsScreen(
           insights: InsightsService(widget.db, widget.clock),
+          history: widget.history,
           period: _insightsPeriod,
-          onPeriodChanged: (p) => setState(() => _insightsPeriod = p),
           changes: _dataChanges,
           clock: widget.clock,
         ),

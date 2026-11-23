@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 
 import '../../services/analytics/insight_period.dart';
 import '../../services/analytics/insights_service.dart';
+import '../../services/history/history_service.dart';
 import '../../util/clock.dart';
 import '../../util/duration_format.dart';
 import '../../widgets/charts/comparison_bars.dart';
 import '../../widgets/charts/donut_chart.dart';
 import '../../widgets/common/activity_dot.dart';
+import '../../widgets/insights/period_selector.dart';
+import 'day_strips_page.dart';
 
 /// Activity distribution and period comparison for one selected period.
 /// The period selector at the top drives both charts; swiping left or right
@@ -17,15 +20,20 @@ class InsightsScreen extends StatefulWidget {
   const InsightsScreen({
     super.key,
     required this.insights,
+    required this.history,
     required this.period,
-    required this.onPeriodChanged,
     required this.changes,
     required this.clock,
   });
 
   final InsightsService insights;
-  final InsightPeriod period;
-  final ValueChanged<InsightPeriod> onPeriodChanged;
+
+  /// For the daily timeline opened from its card.
+  final HistoryService history;
+
+  /// The selected period, shared with the Daily timeline: a change in either
+  /// shows in both.
+  final ValueNotifier<InsightPeriod> period;
 
   /// Anything that can change the numbers (tracking, edits, activities).
   final Listenable changes;
@@ -39,20 +47,14 @@ class _InsightsScreenState extends State<InsightsScreen> {
   InsightsData? _data;
   Timer? _ticker;
 
-  /// Horizontal distance of the drag in progress.
-  double _drag = 0;
-
-  /// A swipe this long, or this fast, changes the period.
-  static const double _swipeDistance = 64;
-  static const double _swipeVelocity = 600;
-
   @override
   void initState() {
     super.initState();
     widget.changes.addListener(_load);
+    widget.period.addListener(_onPeriod);
     // A period in progress grows while an activity runs.
     _ticker = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (widget.period.isInProgress(widget.clock.now())) _load();
+      if (_period.isInProgress(widget.clock.now())) _load();
     });
     _load();
   }
@@ -64,8 +66,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
       old.changes.removeListener(_load);
       widget.changes.addListener(_load);
     }
-    if (old.period.unit != widget.period.unit ||
-        old.period.anchor != widget.period.anchor) {
+    if (old.period != widget.period) {
+      old.period.removeListener(_onPeriod);
+      widget.period.addListener(_onPeriod);
       _load();
     }
   }
@@ -73,126 +76,50 @@ class _InsightsScreenState extends State<InsightsScreen> {
   @override
   void dispose() {
     widget.changes.removeListener(_load);
+    widget.period.removeListener(_onPeriod);
     _ticker?.cancel();
     super.dispose();
   }
 
+  InsightPeriod get _period => widget.period.value;
+
+  /// Shows the new selection right away (old results dimmed), then loads.
+  void _onPeriod() {
+    setState(() {});
+    _load();
+  }
+
   Future<void> _load() async {
-    final period = widget.period;
+    final period = _period;
     final data = await widget.insights.load(period);
-    if (mounted && identical(period, widget.period)) {
+    if (mounted && identical(period, _period)) {
       setState(() => _data = data);
     }
   }
 
-  void _select(InsightPeriod p) => widget.onPeriodChanged(p);
-
-  InsightPeriod? _previous() =>
-      widget.period.unit == InsightUnit.all ? null : widget.period.previous;
-
-  InsightPeriod? _next(DateTime now) {
-    final period = widget.period;
-    if (period.unit == InsightUnit.all ||
-        period.isInProgress(now) ||
-        period.next.isFuture(now)) {
-      return null;
-    }
-    return period.next;
-  }
-
-  void _onDragEnd(DragEndDetails d) {
-    final velocity = d.primaryVelocity ?? 0;
-    final distance = _drag;
-    _drag = 0;
-    final swipedLeft =
-        distance <= -_swipeDistance || velocity <= -_swipeVelocity;
-    final swipedRight =
-        distance >= _swipeDistance || velocity >= _swipeVelocity;
-    // Like turning pages: swipe left for the next period, right for the
-    // previous one.
-    final target = swipedLeft
-        ? _next(widget.clock.now())
-        : swipedRight
-        ? _previous()
-        : null;
-    if (target != null) _select(target);
-  }
+  void _select(InsightPeriod p) => widget.period.value = p;
 
   @override
   Widget build(BuildContext context) {
     final now = widget.clock.now();
-    final period = widget.period;
+    final period = _period;
     // While a newly selected period loads, the previous results stay (dimmed)
     // so the list keeps its height and scroll position.
     final data = _data;
     final loading = data?.period != period;
-    final isCurrent = period.isInProgress(now);
-    final text = Theme.of(context).textTheme;
-
-    // The period selector stays fixed at the top; only the results scroll.
-    final selector = Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Column(
-        children: [
-          SegmentedButton<InsightUnit>(
-            showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(value: InsightUnit.day, label: Text('Day')),
-              ButtonSegment(value: InsightUnit.week, label: Text('Week')),
-              ButtonSegment(value: InsightUnit.month, label: Text('Month')),
-              ButtonSegment(value: InsightUnit.year, label: Text('Year')),
-              ButtonSegment(value: InsightUnit.all, label: Text('All')),
-            ],
-            selected: {period.unit},
-            onSelectionChanged: (s) => _select(InsightPeriod(s.single, now)),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              IconButton(
-                tooltip: 'Previous',
-                icon: const Icon(Icons.chevron_left),
-                onPressed: switch (_previous()) {
-                  final p? => () => _select(p),
-                  null => null,
-                },
-              ),
-              Expanded(
-                child: TextButton(
-                  // Tapping the label returns to the current period.
-                  onPressed: isCurrent
-                      ? null
-                      : () => _select(InsightPeriod(period.unit, now)),
-                  child: Text(
-                    period.label(now),
-                    key: const Key('insights-period'),
-                    style: text.titleMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-              IconButton(
-                tooltip: 'Next',
-                icon: const Icon(Icons.chevron_right),
-                onPressed: switch (_next(now)) {
-                  final p? => () => _select(p),
-                  null => null,
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
+    final selector = PeriodSelector(
+      period: period,
+      now: now,
+      onChanged: _select,
+      labelKey: const Key('insights-period'),
     );
 
     final shown = data?.period;
-    return GestureDetector(
+    return PeriodSwipe(
       key: const Key('insights-swipe'),
-      // Vertical drags still scroll the list; only horizontal ones swipe.
-      behavior: HitTestBehavior.translucent,
-      onHorizontalDragStart: (_) => _drag = 0,
-      onHorizontalDragUpdate: (d) => _drag += d.primaryDelta ?? 0,
-      onHorizontalDragEnd: _onDragEnd,
+      period: period,
+      now: widget.clock.now,
+      onChanged: _select,
       child: Column(
         children: [
           selector,
@@ -236,6 +163,29 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       ],
                     ),
                   ),
+                const SizedBox(height: 16),
+                // Not tied to the selected period: it shows every day.
+                Card(
+                  margin: EdgeInsets.zero,
+                  clipBehavior: Clip.antiAlias,
+                  child: ListTile(
+                    key: const Key('open-day-strips'),
+                    leading: const Icon(Icons.view_timeline_outlined),
+                    title: const Text('Daily timeline'),
+                    subtitle: const Text('Every day from midnight to midnight'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => DayStripsPage(
+                          history: widget.history,
+                          period: widget.period,
+                          changes: widget.changes,
+                          clock: widget.clock,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

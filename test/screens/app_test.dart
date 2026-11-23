@@ -16,6 +16,7 @@ import 'package:time_tracker/services/goals/goal_service.dart';
 import 'package:time_tracker/services/history/entry_edit_service.dart';
 import 'package:time_tracker/services/history/history_service.dart';
 import 'package:time_tracker/widgets/activities/activity_tile.dart';
+import 'package:time_tracker/widgets/charts/day_strip.dart';
 import 'package:time_tracker/widgets/goals/goal_bars.dart';
 
 import '../support/matchers.dart';
@@ -1338,6 +1339,89 @@ void main() {
       expect(find.text('Today vs Yesterday'), findsOneWidget);
       expect(find.text('+3h'), findsOneWidget); // Free Time vs nothing
       expect(find.textContaining('still in progress'), findsNothing);
+    });
+
+    testWidgets('Daily timeline: lines per day, fitted to the period', (
+      tester,
+    ) async {
+      await openInsights(tester);
+      // Install was Monday 9 Nov; look two days later, in Week.
+      f.clock.set(DateTime(2026, 11, 11, 14));
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('open-day-strips')),
+        200,
+      );
+      await tester.tap(find.byKey(const Key('open-day-strips')));
+      await settle(tester);
+      await tester.pumpAndSettle();
+      DayStripsChart chart() => tester.widget<DayStripsChart>(
+        find.byKey(const Key('day-strips-chart')),
+      );
+      String label() =>
+          tester.widget<Text>(find.byKey(const Key('day-strips-period'))).data!;
+
+      // Opens on the period selected in Insights.
+      expect(label(), 'Mon, 9 Nov 2026');
+      expect(chart().rows.map((r) => r.day), [DateTime(2026, 11, 9)]);
+      final dayRow = chart().rowHeight + chart().gap;
+
+      await tester.tap(find.text('Week').last);
+      await tester.pumpAndSettle();
+      // Mon–Sun, newest first; days without entries are empty lines.
+      expect(chart().rows.length, 7);
+      expect(chart().rows.first.day, DateTime(2026, 11, 15));
+      expect(chart().rows.last.day, DateTime(2026, 11, 9));
+      expect(chart().rows.last.entries, isNotEmpty);
+      // Day, Week and Month all use the same line size.
+      expect(chart().rowHeight + chart().gap, dayRow);
+
+      // A year fits on screen: thinner lines, no gaps.
+      await tester.tap(find.text('Year').last);
+      await tester.pumpAndSettle();
+      expect(chart().rows.length, 365);
+      expect(chart().rowHeight, lessThan(16));
+      expect(
+        tester.getSize(find.byKey(const Key('day-strips-chart'))).height,
+        lessThanOrEqualTo(
+          tester.getSize(find.byKey(const Key('day-strips-list'))).height,
+        ),
+      );
+
+      // Every month is sized as 31 days: November (30) keeps the lines of
+      // a 31-day month.
+      await tester.tap(find.text('Month').last);
+      await tester.pumpAndSettle();
+      expect(chart().rows.length, 30);
+      final monthRow = chart().rowHeight + chart().gap;
+      expect(monthRow, dayRow);
+      expect(
+        monthRow * 31,
+        closeTo(
+          tester.getSize(find.byKey(const Key('day-strips-list'))).height - 20,
+          0.01,
+        ),
+      );
+
+      // Swiping right goes back a month (October has 31 days, same lines).
+      await tester.fling(
+        find.byKey(const Key('day-strips-list')),
+        const Offset(300, 0),
+        1000,
+      );
+      await tester.pumpAndSettle();
+      expect(label(), 'October 2026');
+      expect(chart().rows.first.day, DateTime(2026, 10, 31));
+      expect(chart().rowHeight + chart().gap, monthRow);
+
+      // The selection is shared with Insights.
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(periodLabel(tester), 'October 2026');
+      await tester.tap(find.text('Year'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('open-day-strips')));
+      await tester.pumpAndSettle();
+      expect(label(), '2026');
     });
 
     testWidgets('the period selector drives both charts', (tester) async {
