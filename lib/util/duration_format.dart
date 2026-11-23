@@ -7,13 +7,33 @@ String formatClock(Duration d) {
   return '$h:${_two(m)}:${_two(sec)}';
 }
 
-/// Total format: `0m`, `42m`, `2h 42m`, `5h 0m`. Seconds are dropped.
+/// Total format: `0m`, `42m`, `2h 42m`, `5h`, `1w 3d 4h 10m`, `1y 2mo 5d`.
+///
+/// Units are years, months, weeks, days, hours and minutes, with fixed
+/// lengths (1y = 365d, 1mo = 30d, 1w = 7d) since a total is not tied to a
+/// calendar. Months use `mo` so they are not confused with minutes. Units that
+/// are zero are left out; seconds are dropped.
 String formatTotal(Duration d) {
-  final minutes = d.isNegative ? 0 : d.inMinutes;
-  final h = minutes ~/ 60;
-  final m = minutes % 60;
-  return h == 0 ? '${m}m' : '${h}h ${m}m';
+  var minutes = d.isNegative ? 0 : d.inMinutes;
+  if (minutes == 0) return '0m';
+  final parts = <String>[];
+  for (final (unit, size) in _totalUnits) {
+    final n = minutes ~/ size;
+    if (n > 0) parts.add('$n$unit');
+    minutes %= size;
+  }
+  return parts.join(' ');
 }
+
+const _minutesPerDay = 24 * 60;
+const _totalUnits = [
+  ('y', 365 * _minutesPerDay),
+  ('mo', 30 * _minutesPerDay),
+  ('w', 7 * _minutesPerDay),
+  ('d', _minutesPerDay),
+  ('h', 60),
+  ('m', 1),
+];
 
 String _two(int n) => n.toString().padLeft(2, '0');
 

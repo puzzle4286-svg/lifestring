@@ -110,7 +110,7 @@ void main() {
     await pump(tester, [
       dayEntry(1, 'Work', DateTime(2026, 11, 9, 13), null),
     ], now);
-    expect(find.text('13:00 – now · 1h 0m'), findsOneWidget);
+    expect(find.text('13:00 – now · 1h'), findsOneWidget);
     expect(tester.getSize(find.byType(DayTimeline)).height, 14 * 60 * ppm);
   });
 
@@ -118,7 +118,7 @@ void main() {
     await pump(tester, [
       dayEntry(1, 'Gaming', DateTime(2026, 11, 9, 23), DateTime(2026, 11, 10)),
     ], DateTime(2026, 11, 11));
-    expect(find.text('23:00 – 24:00 · 1h 0m'), findsOneWidget);
+    expect(find.text('23:00 – 24:00 · 1h'), findsOneWidget);
   });
 
   test('a full day is 24 h tall; DST days follow their real length', () {

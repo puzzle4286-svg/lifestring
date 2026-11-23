@@ -19,8 +19,12 @@ void main() {
     expect(formatTotal(const Duration(seconds: 59)), '0m');
     expect(formatTotal(const Duration(minutes: 42)), '42m');
     expect(formatTotal(const Duration(hours: 2, minutes: 42)), '2h 42m');
-    expect(formatTotal(const Duration(hours: 5)), '5h 0m');
-    expect(formatTotal(const Duration(hours: 130, minutes: 1)), '130h 1m');
+    expect(formatTotal(const Duration(hours: 5)), '5h');
+    expect(formatTotal(const Duration(hours: 130, minutes: 1)), '5d 10h 1m');
+    expect(formatTotal(const Duration(days: 10, hours: 4)), '1w 3d 4h');
+    expect(formatTotal(const Duration(days: 30)), '1mo');
+    expect(formatTotal(const Duration(days: 365 + 60 + 5, minutes: 7)),
+        '1y 2mo 5d 7m');
     expect(formatTotal(const Duration(minutes: -3)), '0m');
     // Seconds are summed before formatting, so 3 x 40 s shows 2m.
     expect(formatTotal(const Duration(seconds: 40) * 3), '2m');

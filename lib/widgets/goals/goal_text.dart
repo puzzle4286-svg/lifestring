@@ -47,7 +47,7 @@ String describeGoalPeriod(Goal g) {
   };
 }
 
-/// Short summary of the targets, e.g. "min 2h 0m · max 5h 0m".
+/// Short summary of the targets, e.g. "min 2h · max 5h".
 String describeGoalTargets(Goal g, String Function(Duration) format) => [
   if (g.minimum != null) 'min ${format(g.minimum!)}',
   if (g.maximum != null) 'max ${format(g.maximum!)}',

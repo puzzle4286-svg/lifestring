@@ -79,7 +79,7 @@ Rules:
 | `lib/services/tracking/durations.dart` | `trackedInRange` – clipped sums over entries |
 | `lib/services/tracking/tracking_service.dart` | `TrackingService` (`reconcile`, `switchTo`) and `ActiveSession` snapshot |
 | `lib/services/activities/activity_service.dart` | Live grid activities; create / update; name validation |
-| `lib/util/duration_format.dart` | `formatClock` (`1:42:15`), `formatTotal` (`2h 42m`) |
+| `lib/util/duration_format.dart` | `formatClock` (`1:42:15`), `formatTotal` (`2h 42m`, `1y 2mo 1w 3d 4h 10m`) |
 | `lib/app/app_shell.dart` | Bottom navigation; reconcile on resume |
 | `lib/app/app_info.dart` | App name and version constants |
 | `lib/screens/home/` | `HomeScreen`, `CurrentActivityHeader` (1 s display ticker) |

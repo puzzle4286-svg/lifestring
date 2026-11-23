@@ -19,11 +19,7 @@ double linearFraction(Duration d, Duration end) {
 }
 
 /// Short duration label for marks: `1h`, `1h 30m`, `45m`.
-String shortDuration(Duration d) {
-  final m = d.inMinutes;
-  if (m % 60 == 0 && m >= 60) return '${m ~/ 60}h';
-  return formatTotal(d);
-}
+String shortDuration(Duration d) => formatTotal(d);
 
 /// Vivid red for time beyond a goal's maximum; the theme's error colour is
 /// too pale for this on dark backgrounds.

@@ -496,7 +496,7 @@ void main() {
     expect(find.text('Limit'), findsOneWidget);
     expect(find.text('Gaming · Limit'), findsNothing);
     expect(textOf(tester, 'home-goal-tracked-${limit.id}'), '45m');
-    expect(find.textContaining('min 30m · max 2h 0m · until'), findsOneWidget);
+    expect(find.textContaining('min 30m · max 2h · until'), findsOneWidget);
     // Right under the header, well above the grid.
     expect(
       tester.getTopLeft(find.byKey(ValueKey('home-goal-${limit.id}'))).dy,
@@ -721,15 +721,15 @@ void main() {
     await settle(tester);
 
     expect(find.textContaining('Today'), findsOneWidget);
-    expect(find.text('00:00 – now · 8h 0m'), findsOneWidget);
+    expect(find.text('00:00 – now · 8h'), findsOneWidget);
 
     await tester.dragUntilVisible(
-      find.text('09:00 – 24:00 · 15h 0m'), // Monday's Free Time
+      find.text('09:00 – 24:00 · 15h'), // Monday's Free Time
       find.byKey(const Key('history-list')),
       const Offset(0, 400),
     );
     await settle(tester);
-    expect(find.text('09:00 – 24:00 · 15h 0m'), findsOneWidget);
+    expect(find.text('09:00 – 24:00 · 15h'), findsOneWidget);
     // History ends at the first recorded day: nothing before Monday.
     expect(find.textContaining('Sun, 8 Nov'), findsNothing);
   });
@@ -786,7 +786,7 @@ void main() {
 
     testWidgets('running duration updates every second', (tester) async {
       await openHistory(tester);
-      expect(find.text('00:00 – now · 8h 0m'), findsOneWidget);
+      expect(find.text('00:00 – now · 8h'), findsOneWidget);
       f.clock.advance(const Duration(minutes: 5));
       await tester.pump(const Duration(seconds: 1));
       expect(find.text('00:00 – now · 8h 5m'), findsOneWidget);
@@ -794,7 +794,7 @@ void main() {
 
     testWidgets('at the bottom the view follows now', (tester) async {
       await openHistory(tester);
-      final label = find.text('00:00 – now · 8h 0m');
+      final label = find.text('00:00 – now · 8h');
       final before = tester.getTopLeft(label).dy;
 
       f.clock.advance(const Duration(minutes: 5));
@@ -812,12 +812,12 @@ void main() {
     ) async {
       await openHistory(tester);
       await tester.dragUntilVisible(
-        find.text('10:00 – 24:00 · 14h 0m'), // Tuesday's Gaming
+        find.text('10:00 – 24:00 · 14h'), // Tuesday's Gaming
         find.byKey(const Key('history-list')),
         const Offset(0, 300),
       );
       await settle(tester);
-      final label = find.text('10:00 – 24:00 · 14h 0m');
+      final label = find.text('10:00 – 24:00 · 14h');
       final before = tester.getTopLeft(label).dy;
 
       f.clock.advance(const Duration(minutes: 5));
@@ -856,14 +856,14 @@ void main() {
       expect(uiState.get('history.anchor'), anyOf(isNull, 'now'));
 
       await tester.dragUntilVisible(
-        find.text('10:00 – 24:00 · 14h 0m'),
+        find.text('10:00 – 24:00 · 14h'),
         find.byKey(const Key('history-list')),
         const Offset(0, 300),
       );
       await settle(tester);
       final saved = uiState.get('history.anchor')!;
       expect(int.tryParse(saved), isNotNull);
-      final label = find.text('10:00 – 24:00 · 14h 0m');
+      final label = find.text('10:00 – 24:00 · 14h');
       final before = tester.getTopLeft(label).dy;
 
       // Leave and return after 10 minutes: same moment at the same place.
@@ -1011,7 +1011,7 @@ void main() {
 
       expect(find.text('This changes other entries'), findsOneWidget);
       expect(find.text('This entry will be shortened:'), findsOneWidget);
-      expect(find.text('1h 0m → 30m 0s'), findsOneWidget); // running Free Time
+      expect(find.text('1h → 30m 0s'), findsOneWidget); // running Free Time
       expect(
         find.descendant(
           of: find.byType(AlertDialog),
@@ -1091,7 +1091,7 @@ void main() {
       final entries = await f.entries();
       expect(entries, hasLength(1));
       expect(entries.single.start, isMoment(DateTime(2026, 11, 9, 9)));
-      expect(find.text('09:00 – now · 3h 0m'), findsOneWidget);
+      expect(find.text('09:00 – now · 3h'), findsOneWidget);
     });
 
     testWidgets('day header shows the Info placeholder', (tester) async {
@@ -1138,7 +1138,7 @@ void main() {
 
       expect(find.text('Every day from 00:00'), findsOneWidget);
       expect(find.text('Minimum'), findsOneWidget);
-      expect(find.text('1h 30m of 2h 0m · 75% · 30m to go'), findsOneWidget);
+      expect(find.text('1h 30m of 2h · 75% · 30m to go'), findsOneWidget);
     });
 
     testWidgets('maximum progress and exceeding it', (tester) async {
@@ -1156,14 +1156,14 @@ void main() {
       );
       await pumpApp(tester);
       await openGoals(tester);
-      expect(find.text('1h 0m of 2h 0m used · 1h 0m left'), findsOneWidget);
+      expect(find.text('1h of 2h used · 1h left'), findsOneWidget);
 
       // Two more hours pass while Gaming runs; the page refreshes itself.
       f.clock.set(DateTime(2026, 11, 9, 13));
       await tester.pump(const Duration(seconds: 16));
       await settle(tester);
       expect(find.text('Maximum exceeded'), findsOneWidget);
-      expect(find.text('3h 0m of 2h 0m · over by 1h 0m'), findsOneWidget);
+      expect(find.text('3h of 2h · over by 1h'), findsOneWidget);
     });
 
     testWidgets('a goal needs a minimum or a maximum', (tester) async {
@@ -1336,7 +1336,7 @@ void main() {
         200,
       );
       expect(find.text('Today vs Yesterday'), findsOneWidget);
-      expect(find.text('+3h 0m'), findsOneWidget); // Free Time vs nothing
+      expect(find.text('+3h'), findsOneWidget); // Free Time vs nothing
       expect(find.textContaining('still in progress'), findsNothing);
     });
 

@@ -82,7 +82,7 @@ works for any instant, before or after the anchor.
 ## D10 – Product defaults (confirmed with developer, 2026-11-11)
 - Positions 2–8 start empty ("Tap to set up"); empty slots cannot be active.
 - "Unavailable" time is shown in Insights as its own grey item.
-- Live session shown as `1:42:15`; totals shown as `2h 42m`.
+- Live session shown as `1:42:15`; totals shown as `2h 42m`, growing to `1y 2mo 1w 3d 4h 10m` (fixed 365d/30d/7d units, `mo` for months, zero units left out).
 - Overlapping history edits are never applied silently: the user chooses to
   trim neighbouring entries or cancel.
 
