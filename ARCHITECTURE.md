@@ -91,7 +91,9 @@ Rules:
 | `lib/services/analytics/distribution.dart` | `activityDistribution` – pure |
 | `lib/services/analytics/comparison.dart` | `comparePeriods` – pure, equivalent spans |
 | `lib/services/analytics/insights_service.dart` | Loads entries once per selection |
-| `lib/widgets/charts/` | `DonutChart` (CustomPainter), `ComparisonBars` |
+| `lib/screens/insights/day_strips_page.dart` | Daily timeline: one line per day of the period, fitted to the screen (D61) |
+| `lib/widgets/insights/period_selector.dart` | `PeriodSelector`, `PeriodSwipe`: shared by Insights and the Daily timeline |
+| `lib/widgets/charts/` | `DonutChart` (CustomPainter), `ComparisonBars`, `DayStripsChart` |
 | `lib/widgets/activities/` | `ActivityTile` (icon, active highlight), `showActivityEditor` sheet (name, description, colour, icon), `showActivityGuide` ("Which activity?") |
 | `lib/models/activity_icons.dart` | Icon keys ⇄ Material icons for tiles |
 | `lib/screens/home/home_goals.dart` | Goal progress list on the main screen |

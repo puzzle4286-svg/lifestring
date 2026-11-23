@@ -1,0 +1,3 @@
+- Insights: new Daily timeline, one midnight-to-midnight line per day, coloured by activity
+- Daily timeline uses the Insights period selector; a whole year fits on one screen
+- Totals show years, months, weeks and days, e.g. 1mo 1w 3d 4h; zero units left out

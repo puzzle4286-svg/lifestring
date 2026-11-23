@@ -763,3 +763,26 @@ name, the database file `time_tracker.db`, the backup `format` tag
   works as for Flat (D50). Never rename it: Android stores its name.
 - Independent of the Style setting: either can be chosen without the other.
 
+## D61 – Insights: Daily timeline (2026-11-23)
+- A card at the bottom of Insights opens one 24-hour line per day of the
+  selected period, newest at the top, coloured by activity; untracked time
+  stays the track colour (not Default, unlike the Insights numbers).
+  No date labels: the developer preferred full-width lines.
+- **One selected period** (a `ValueNotifier` in `AppShell`) is shared by
+  Insights and the timeline; both use `PeriodSelector` / `PeriodSwipe`.
+  Like Insights, it cannot move into the future.
+- **Sizing**: Day, Week and Month are sized for 31 lines, so lines look the
+  same in all three and shorter periods end higher up. Year and All shrink
+  lines to fit the screen (no gaps below 6 px per line); below 1 px per
+  line, All scrolls. Pieces narrower than 1 px (about 4–5 min on a phone)
+  are not drawn.
+- **Positions follow the wall clock** (`dayLineFraction`): 06:00 is always
+  a quarter of the way across, so lines match the fixed 0–24 axis and the
+  6/12/18 guides on days with 23 or 25 hours. Scaling by the day's real
+  length put the guides off by up to an hour's width on those days. The
+  repeated autumn hour is drawn over itself; the skipped spring hour is
+  passed over.
+- Flat in every style: a Neon glow was tried and dropped at the
+  developer's request.
+- Totals elsewhere use `y mo w d h m` with fixed 365/30/7-day units and
+  zero units left out (D10).

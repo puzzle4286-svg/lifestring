@@ -773,3 +773,26 @@ and Flat outputs unchanged); `.IconGrayscale` alias; `AppIconChoice`.
 - Not tried on a phone (none available); switching uses the same code as
   Flat.
 
+## 2026-11-23 – 0.5.0: totals up to years; Daily timeline
+
+**Requested**: totals as `y m w d h m`; a scrollable timeline of every day
+in Insights; then the Insights period selector there, a whole year on one
+screen, synced selection, same line size for Day/Week/Month, no Neon glow.
+
+**Work completed**
+- `formatTotal`: years/months/weeks/days/hours/minutes (`mo` for months),
+  zero units dropped; `shortDuration` now uses it.
+- Daily timeline (D61): `DayStripsPage`, `DayStripsChart`, shared
+  `PeriodSelector`/`PeriodSwipe` (moved out of `InsightsScreen`), period
+  in a `ValueNotifier` owned by `AppShell`.
+- Found on the phone: guide lines off on 19–25 Oct and in March. Cause:
+  lines scaled to the real day length on DST days while the axis is a
+  fixed 24 h. Fixed by placing everything by wall-clock time.
+- Found on the phone: Year ran under the navigation bar; body now in a
+  bottom `SafeArea`.
+
+**Testing performed**
+- Duration format, day strip (incl. every 2026 DST day, Europe/Berlin),
+  goal bars, day timeline, app, landscape and History-jump tests pass.
+- On the phone (dev build): Day, Week (19–25 Oct), Year, Neon style, and
+  the period carried back to Insights.

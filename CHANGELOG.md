@@ -5,6 +5,22 @@ explicitly under **Database**.
 
 ## [Unreleased]
 
+## [0.5.0] – 2026-11-23
+
+### Added
+- Insights → Daily timeline: every day of the selected period as a
+  midnight-to-midnight line, newest at the top, coloured by what was
+  tracked when. Uses the same period selector as Insights (Day, Week,
+  Month, Year, All; swipe to change). Day, Week and Month lines are sized
+  for 31 days; Year and All shrink to fit the screen. Entries too short to
+  see at that scale are left out.
+
+### Changed
+- Totals show years, months, weeks, days, hours and minutes, e.g.
+  `1mo 1w 3d 4h 10m`; months are `mo`, zero units are left out (`5h`
+  instead of `5h 0m`).
+- Insights and the Daily timeline share one selected period.
+
 ## [0.4.1] – 2026-11-13
 
 ### Fixed
