@@ -50,8 +50,8 @@ Future<Color> _pixel(Uint8List png, Offset at) async {
   return _at(
     data,
     width,
-    (at.dx * SwitcherWidget.pixelRatio).round(),
-    (at.dy * SwitcherWidget.pixelRatio).round(),
+    (at.dx * SwitcherWidget.defaultPixelRatio).round(),
+    (at.dy * SwitcherWidget.defaultPixelRatio).round(),
   );
 }
 
@@ -69,8 +69,9 @@ Matcher _closeTo(Color expected) =>
 Future<int> _drawnInCentre(Uint8List png, Color fill) async {
   final (data, width) = await _decode(png);
   final c =
-      SwitcherWidget.tileSize.center(Offset.zero) * SwitcherWidget.pixelRatio;
-  const half = 12 * SwitcherWidget.pixelRatio;
+      SwitcherWidget.tileSize.center(Offset.zero) *
+      SwitcherWidget.defaultPixelRatio;
+  const half = 8 * SwitcherWidget.defaultPixelRatio;
   var count = 0;
   for (var y = (c.dy - half).round(); y < c.dy + half; y++) {
     for (var x = (c.dx - half).round(); x < c.dx + half; x++) {
@@ -101,11 +102,11 @@ void main() {
       final image = (await codec.getNextFrame()).image;
       expect(
         image.width,
-        SwitcherWidget.tileSize.width * SwitcherWidget.pixelRatio,
+        SwitcherWidget.tileSize.width * SwitcherWidget.defaultPixelRatio,
       );
       expect(
         image.height,
-        SwitcherWidget.tileSize.height * SwitcherWidget.pixelRatio,
+        SwitcherWidget.tileSize.height * SwitcherWidget.defaultPixelRatio,
       );
     });
 
@@ -120,15 +121,15 @@ void main() {
       );
       final codec = await ui.instantiateImageCodec(png);
       final image = (await codec.getNextFrame()).image;
-      expect(image.width, size.width * SwitcherWidget.pixelRatio);
-      expect(image.height, size.height * SwitcherWidget.pixelRatio);
+      expect(image.width, size.width * SwitcherWidget.defaultPixelRatio);
+      expect(image.height, size.height * SwitcherWidget.defaultPixelRatio);
       image.dispose();
       final fill = ActivityTile.fillFor(scheme, _activity(), false);
-      expect(await _pixel(png, const Offset(50, 6)), _closeTo(fill));
-      expect(await _pixel(png, const Offset(50, 32)), _closeTo(fill));
+      expect(await _pixel(png, const Offset(35, 5)), _closeTo(fill));
+      expect(await _pixel(png, const Offset(35, 22)), _closeTo(fill));
       var drawn = 0;
-      for (var x = 40.0; x <= 60; x += 0.5) {
-        if (!_close(await _pixel(png, Offset(x, 19)), fill)) drawn++;
+      for (var x = 28.0; x <= 42; x += 0.5) {
+        if (!_close(await _pixel(png, Offset(x, 13.5)), fill)) drawn++;
       }
       expect(drawn, greaterThan(4), reason: 'icon across the middle');
     });
@@ -137,7 +138,7 @@ void main() {
         'otherwise', () async {
       final a = _activity();
       // A point inside the tile but away from the centred label.
-      const probe = Offset(SwitcherWidget.padding + 6, 26);
+      const probe = Offset(SwitcherWidget.padding + 6, 18);
       expect(
         await _pixel(await render(a, active: true), probe),
         _closeTo(ActivityTile.fillFor(scheme, a, true)),
@@ -151,7 +152,7 @@ void main() {
     test('glows outside the tile only with Neon on the active tile', () async {
       final a = _activity(icon: 'work');
       // In the padding, beside the tile edge.
-      const outside = Offset(2, 26);
+      const outside = Offset(1.5, 18);
       expect((await _pixel(await render(a, active: true), outside)).a, 0);
       expect((await _pixel(await render(a, neon: true), outside)).a, 0);
       expect(
@@ -162,7 +163,7 @@ void main() {
 
     test('is grey in Grayscale, coloured otherwise', () async {
       final a = _activity();
-      const probe = Offset(SwitcherWidget.padding + 6, 26);
+      const probe = Offset(SwitcherWidget.padding + 6, 18);
       bool grey(Color c) =>
           (c.r - c.g).abs() < 3 / 255 && (c.g - c.b).abs() < 3 / 255;
       final coloured = await _pixel(await render(a, active: true), probe);
@@ -199,12 +200,54 @@ void main() {
         scheme: scheme,
         neon: false,
       );
-      const inside = Offset(SwitcherWidget.padding + 6, 26);
+      const inside = Offset(SwitcherWidget.padding + 6, 18);
       expect((await _pixel(png, inside)).a, 0);
-      const edge = Offset(SwitcherWidget.padding + 0.5, 26);
+      const edge = Offset(SwitcherWidget.padding + 0.5, 18);
       expect((await _pixel(png, edge)).a, greaterThan(0));
       expect(await _drawnInCentre(png, Colors.transparent), greaterThan(40));
     });
+  });
+
+  group('tile size', () {
+    test('fills a slot of the reported widget size', () {
+      // The emulator's 4 x 1 widget: flat slots.
+      expect(
+        SwitcherWidget.tileSizeFor(const Size(300, 75), timer: false),
+        const Size(75, 37),
+      );
+      expect(
+        SwitcherWidget.tileSizeFor(const Size(300, 75), timer: true),
+        const Size(75, 27),
+      );
+    });
+
+    test('is never taller than an app tile', () {
+      final tall = SwitcherWidget.tileSizeFor(
+        const Size(320, 600),
+        timer: true,
+      );
+      expect(tall, const Size(80, 70));
+      expect(SwitcherWidget.maxTileHeight, 70);
+    });
+
+    test('falls back to the 4 x 1 default before a size is reported', () {
+      expect(
+        SwitcherWidget.tileSizeFor(null, timer: false),
+        SwitcherWidget.tileSize,
+      );
+      expect(
+        SwitcherWidget.tileSizeFor(null, timer: true),
+        SwitcherWidget.timerTileSize,
+      );
+    });
+
+    test(
+      'icons are as in the app on app-sized tiles, smaller in flat ones',
+      () {
+        expect(SwitcherWidget.labelSize(64, 26, 0.68), 26);
+        expect(SwitcherWidget.labelSize(31, 26, 0.68), closeTo(21.1, 0.1));
+      },
+    );
   });
 
   group('state from the database', () {

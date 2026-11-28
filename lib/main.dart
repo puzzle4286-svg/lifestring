@@ -16,13 +16,18 @@ Future<void> main() async {
 
   final (factory, dir) = await _databaseLocation();
   final db = await openAppDatabase(factory, p.join(dir, databaseFileName));
-  if (Platform.isAndroid) await SwitcherWidget.register();
+  WidgetSetUpRequests? setUps;
+  if (Platform.isAndroid) {
+    await SwitcherWidget.register();
+    setUps = WidgetSetUpRequests(await WidgetSetUpRequests.initial())..listen();
+  }
   runApp(
     AppRoot(
       db: db,
       clock: clock,
       services: await AppServices.load(db, clock),
       syncWidget: Platform.isAndroid,
+      widgetSetUps: setUps,
     ),
   );
 }

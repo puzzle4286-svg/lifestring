@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -16,6 +17,7 @@ import '../../models/app_settings.dart';
 import '../../repositories/activity_repository.dart';
 import '../../repositories/settings_repository.dart';
 import '../../repositories/time_entry_repository.dart';
+import '../../screens/home/home_screen.dart';
 import '../../util/clock.dart';
 import '../../widgets/activities/activity_tile.dart';
 import '../tracking/durations.dart';
@@ -35,23 +37,47 @@ abstract final class SwitcherWidget {
   static const androidProvider =
       'io.github.puzzle4286svg.lifestring.SwitcherWidgetProvider';
 
-  /// Logical size of one tile image, including [padding] on every side.
-  ///
-  /// The shape of one slot when the widget is 4 x 1 cells (about 71 x 37 dp
-  /// on the developer's phone), so the tiles fill the frame.
-  static const tileSize = Size(100, 52);
+  /// Size of one tile image in dp, including [padding] on every side, when
+  /// the widget's size is not known yet: one slot of a 4 x 1 cell widget on
+  /// the Pixel launcher (D49).
+  static const tileSize = Size(71, 37);
 
-  /// [tileSize] with the timer row on (D62): as wide, but flatter, so the
-  /// tiles still fill the width of a 4 x 1 cell widget. Two 37 dp rows less
-  /// the 20 dp timer row leave about 27 dp per row.
-  static const timerTileSize = Size(100, 38);
+  /// [tileSize] with the timer row on (D62): the 20 dp row taken from two
+  /// 37 dp rows.
+  static const timerTileSize = Size(71, 27);
 
-  /// Gap around the tile; the Neon glow must fade out inside it, anything
-  /// beyond would be cut off in a hard square.
-  static const padding = 4.0;
+  /// Height of the timer row in dp (the layout's `timer_row`).
+  static const timerRowHeight = 20.0;
 
-  // Shown about 71 dp wide (about 213 px on a 3x screen).
-  static const pixelRatio = 2.5;
+  /// Tiles grow with the widget up to the app's tile (D62):
+  /// [HomeScreen.tileHeight] plus the grid's 3 dp on each side.
+  static const maxTileHeight = HomeScreen.tileHeight + 2 * padding;
+
+  /// Gap around the tile, as in the app's grid; the Neon glow fades out
+  /// inside it, anything beyond would be cut off in a hard square.
+  static const padding = 3.0;
+
+  /// Device pixels per dp when the provider has not reported it.
+  static const defaultPixelRatio = 3.0;
+
+  /// The widget's size in dp and the screen density, as reported by the
+  /// provider (portrait: smallest width, largest height).
+  static const widgetWidthKey = 'widget_width';
+  static const widgetHeightKey = 'widget_height';
+  static const densityKey = 'widget_density';
+
+  /// One slot of the 2 x 4 grid in a [widget] of that size (dp): a quarter
+  /// of the width and half the height left by the timer row, but never
+  /// taller than an app tile ([maxTileHeight]). Without a size, the 4 x 1
+  /// default.
+  static Size tileSizeFor(Size? widget, {required bool timer}) {
+    if (widget == null || widget.isEmpty) {
+      return timer ? timerTileSize : tileSize;
+    }
+    // 1 dp to spare: launchers round the reported size.
+    final rows = (widget.height - (timer ? timerRowHeight : 0) - 1) / 2;
+    return Size(widget.width / 4, math.min(rows, maxTileHeight));
+  }
 
   static String idKey(int position) => 'slot_${position}_id';
   static String imageKey(int position) => 'slot_${position}_image';
@@ -88,11 +114,21 @@ abstract final class SwitcherWidget {
     try {
       final state = await SwitcherState.load(db);
       final scheme = state.colorScheme;
+      Future<double?> reported(String key) async =>
+          double.tryParse(await HomeWidget.getWidgetData<String>(key) ?? '');
+      final width = await reported(widgetWidthKey);
+      final height = await reported(widgetHeightKey);
+      final size = tileSizeFor(
+        width != null && height != null ? Size(width, height) : null,
+        timer: state.timer != null,
+      );
+      final pixelRatio = await reported(densityKey) ?? defaultPixelRatio;
       for (var position = 1; position <= 8; position++) {
         final activity = state.at(position);
         final png = await renderTile(
           activity,
-          size: state.timer != null ? timerTileSize : tileSize,
+          size: size,
+          pixelRatio: pixelRatio,
           active: activity != null && activity.id == state.activeId,
           scheme: scheme,
           neon: state.style == AppStyle.neon,
@@ -152,6 +188,7 @@ abstract final class SwitcherWidget {
     required bool neon,
     ColorFilter? filter,
     Size size = tileSize,
+    double pixelRatio = defaultPixelRatio,
   }) async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder)..scale(pixelRatio);
@@ -177,8 +214,15 @@ abstract final class SwitcherWidget {
     return bytes!.buffer.asUint8List();
   }
 
-  /// Paints one tile into a [size] area (logical pixels). Icons and
-  /// letters scale with the height, so flatter tiles keep their margins.
+  /// Icon or letter size for a tile [inner] dp high: as in the app
+  /// ([appSize]), but smaller in flat tiles so it keeps its margins
+  /// ([ratio] of the height, as the widget used before sizes were known).
+  static double labelSize(double inner, double appSize, double ratio) =>
+      math.min(appSize, inner * ratio);
+
+  /// Paints one tile into a [size] area (dp). At the app's tile size it
+  /// looks like the app's tile; flatter tiles get smaller icons and
+  /// corners.
   static void paintTile(
     Canvas canvas,
     Activity? activity, {
@@ -187,24 +231,24 @@ abstract final class SwitcherWidget {
     required bool neon,
     Size size = tileSize,
   }) {
-    const radius = Radius.circular(11);
     final rect = Offset.zero & size;
+    final inner = size.height - 2 * padding;
+    final radius = Radius.circular(math.min(14, inner / 4));
     final tile = RRect.fromRectAndRadius(rect.deflate(padding), radius);
-    final scale = size.height / tileSize.height;
     if (activity == null) {
-      paintEmptyTile(canvas, tile, scheme, scale: scale);
+      paintEmptyTile(canvas, tile, scheme, size: labelSize(inner, 26, 0.68));
       return;
     }
     final color = Color(activity.color);
 
     if (active && neon) {
       // Tighter than the app's two-layer glow (Neon.boxGlowFor), so it fits
-      // in [padding]: sigma 1.4 fades out within about 4 px.
+      // in [padding]: sigma 1 fades out within about 3 dp.
       canvas.drawRRect(
-        tile.inflate(0.5),
+        tile.inflate(0.4),
         Paint()
           ..color = color.withValues(alpha: 0.85)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.4),
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1),
       );
     }
     canvas.drawRRect(
@@ -245,15 +289,16 @@ abstract final class SwitcherWidget {
               style: TextStyle(
                 fontFamily: icon.fontFamily,
                 package: icon.fontPackage,
-                // Larger than in the app: the widget tiles are smaller.
-                fontSize: (active ? 32 : 30) * scale,
+                fontSize: active
+                    ? labelSize(inner, 30, 0.73)
+                    : labelSize(inner, 26, 0.68),
                 color: foreground,
               ),
             )
           : TextSpan(
               text: activity.name.characters.first.toUpperCase(),
               style: TextStyle(
-                fontSize: 27 * scale,
+                fontSize: labelSize(inner, 22, 0.61),
                 fontWeight: FontWeight.w600,
                 color: foreground,
               ),
@@ -272,7 +317,7 @@ void paintEmptyTile(
   Canvas canvas,
   RRect tile,
   ColorScheme scheme, {
-  double scale = 1,
+  required double size,
 }) {
   canvas.drawRRect(
     tile.deflate(0.5),
@@ -288,7 +333,7 @@ void paintEmptyTile(
       style: TextStyle(
         fontFamily: Icons.add.fontFamily,
         package: Icons.add.fontPackage,
-        fontSize: 30 * scale,
+        fontSize: size,
         color: ActivityTile.foregroundFor(scheme, null, false),
       ),
     ),
@@ -377,6 +422,48 @@ class SwitcherState {
   }
 }
 
+/// The slot (1–8) in an empty tile's `timetracker://setup?position=<n>`
+/// link, or null for anything else.
+int? setupTargetPosition(Uri? uri) {
+  if (uri == null || uri.scheme != 'timetracker' || uri.host != 'setup') {
+    return null;
+  }
+  final position = int.tryParse(uri.queryParameters['position'] ?? '');
+  return position != null && position >= 1 && position <= 8 ? position : null;
+}
+
+/// An empty widget tile asked to set up its slot; [AppShell] takes it and
+/// opens "Set up activity" there.
+class WidgetSetUpRequests extends ChangeNotifier {
+  WidgetSetUpRequests([this._pending]);
+
+  int? _pending;
+
+  /// Listens for taps while the app runs (Android only).
+  void listen() {
+    HomeWidget.widgetClicked.listen((uri) {
+      final position = setupTargetPosition(uri);
+      if (position != null) request(position);
+    });
+  }
+
+  /// The tap that started the app, if any (Android only).
+  static Future<int?> initial() async =>
+      setupTargetPosition(await HomeWidget.initiallyLaunchedFromHomeWidget());
+
+  void request(int position) {
+    _pending = position;
+    notifyListeners();
+  }
+
+  /// The pending slot, cleared, so each tap opens the sheet once.
+  int? take() {
+    final position = _pending;
+    _pending = null;
+    return position;
+  }
+}
+
 /// The activity id in a tile's `timetracker://switch?id=<id>` link, or null
 /// for anything else.
 int? switchTargetId(Uri? uri) {
@@ -390,7 +477,9 @@ int? switchTargetId(Uri? uri) {
 @pragma('vm:entry-point')
 Future<void> onSwitcherTap(Uri? uri) async {
   final id = switchTargetId(uri);
-  if (id == null) return;
+  // The provider asks for a redraw when the widget's size changed.
+  final redraw = uri?.scheme == 'timetracker' && uri?.host == 'redraw';
+  if (id == null && !redraw) return;
   // Own connection: sqflite shares single instances per path across the
   // whole process, so closing a shared one would close the app's database
   // if it is open at the same time.
@@ -402,7 +491,7 @@ Future<void> onSwitcherTap(Uri? uri) async {
   try {
     final tracking = TrackingService(db, const SystemClock());
     await tracking.reconcile();
-    await tracking.switchTo(id);
+    if (id != null) await tracking.switchTo(id);
     await SwitcherWidget.sync(db);
   } on Object catch (e) {
     // E.g. the activity was deleted since the widget was drawn: redraw.

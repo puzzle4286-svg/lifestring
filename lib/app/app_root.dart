@@ -73,6 +73,7 @@ class AppRoot extends StatefulWidget {
     required this.services,
     this.files = const SystemBackupFiles(),
     this.syncWidget = false,
+    this.widgetSetUps,
   });
 
   final Database db;
@@ -83,6 +84,9 @@ class AppRoot extends StatefulWidget {
   /// Keep the home-screen switcher (D49) in sync; on for the Android app,
   /// off in tests.
   final bool syncWidget;
+
+  /// Empty widget tiles asking to set up their slot; Android only.
+  final WidgetSetUpRequests? widgetSetUps;
 
   @override
   State<AppRoot> createState() => _AppRootState();
@@ -168,6 +172,7 @@ class _AppRootState extends State<AppRoot> {
         ),
         appIcon: Platform.isAndroid ? const AppIconService() : null,
         widgetSettings: Platform.isAndroid,
+        widgetSetUps: widget.widgetSetUps,
       ),
     );
   }

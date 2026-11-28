@@ -48,7 +48,9 @@ class HomeScreen extends StatelessWidget {
     await _guard(context, () => tracking.switchTo(activity.id));
   }
 
-  Future<void> _setUp(BuildContext context, int position) async {
+  /// Opens "Set up activity" for the empty slot [position] and creates the
+  /// activity there (also used for empty widget tiles).
+  Future<void> setUp(BuildContext context, int position) async {
     final draft = await showActivityEditor(
       context,
       title: 'Set up activity',
@@ -282,10 +284,10 @@ class HomeScreen extends StatelessWidget {
       activity: activity,
       isActive: activity?.id == activeId,
       onTap: () => activity == null
-          ? _setUp(context, position)
+          ? setUp(context, position)
           : _select(context, activity),
       onLongPress: () => activity == null
-          ? _setUp(context, position)
+          ? setUp(context, position)
           : _edit(context, activity),
     );
   }

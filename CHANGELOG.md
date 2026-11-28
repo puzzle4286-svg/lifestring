@@ -12,8 +12,11 @@ explicitly under **Database**.
 
 ### Changed
 - Settings: App icon is now under Home-screen.
-- The widget shows empty slots ("+"); tapping one opens the app. Tapping
+- The widget shows empty slots ("+"); tapping one opens "Set up activity"
+  for that slot in the app. Tapping
   the widget's background does nothing.
+- Widget tiles fill the widget at any size, up to the height of the app's
+  tiles.
 
 ## [0.5.0] – 2026-11-23
 

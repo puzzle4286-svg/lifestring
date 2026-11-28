@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -14,6 +16,7 @@ import '../services/goals/goal_service.dart';
 import '../services/history/entry_edit_service.dart';
 import '../services/history/history_service.dart';
 import '../services/tracking/tracking_service.dart';
+import '../services/widget/switcher_widget.dart';
 import '../util/clock.dart';
 import '../widgets/data/data_section.dart';
 import 'settings_controller.dart';
@@ -35,6 +38,7 @@ class AppShell extends StatefulWidget {
     this.data,
     this.appIcon,
     this.widgetSettings = false,
+    this.widgetSetUps,
   });
 
   final TrackingService tracking;
@@ -57,6 +61,9 @@ class AppShell extends StatefulWidget {
 
   /// Home-screen widget options in Settings; Android only.
   final bool widgetSettings;
+
+  /// Taps on empty widget tiles: each opens "Set up activity" for its slot.
+  final WidgetSetUpRequests? widgetSetUps;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -88,10 +95,34 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     _lifecycle = AppLifecycleListener(onResume: widget.tracking.reconcile);
+    widget.widgetSetUps?.addListener(_onWidgetSetUp);
+    // A tap that started the app.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onWidgetSetUp());
   }
+
+  /// Opens "Set up activity" for the slot an empty widget tile asked for,
+  /// on the Track tab. Ignored while a sheet or page is open (it may hold
+  /// unsaved input) or when the slot was filled since the widget was drawn.
+  void _onWidgetSetUp() {
+    final position = widget.widgetSetUps?.take();
+    if (position == null || !mounted) return;
+    if (Navigator.of(context).canPop()) return;
+    if (widget.activities.atPosition(position) != null) return;
+    setState(() => _index = 0);
+    unawaited(_home().setUp(context, position));
+  }
+
+  HomeScreen _home() => HomeScreen(
+    tracking: widget.tracking,
+    activities: widget.activities,
+    goals: widget.goals,
+    clock: widget.clock,
+    uiState: widget.uiState,
+  );
 
   @override
   void dispose() {
+    widget.widgetSetUps?.removeListener(_onWidgetSetUp);
     _lifecycle.dispose();
     _insightsPeriod.dispose();
     super.dispose();
@@ -103,13 +134,7 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       appBar: _index == 0 ? null : AppBar(title: Text(titles[_index])),
       body: switch (_index) {
-        0 => HomeScreen(
-          tracking: widget.tracking,
-          activities: widget.activities,
-          goals: widget.goals,
-          clock: widget.clock,
-          uiState: widget.uiState,
-        ),
+        0 => _home(),
         1 => HistoryScreen(
           history: widget.history,
           tracking: widget.tracking,

@@ -792,11 +792,19 @@ name, the database file `time_tracker.db`, the backup `format` tag
   only, off by default, stored as `widgetTimer`). When on, the widget
   shows two times above the tiles, left-aligned, without labels: the
   running activity's session (large) and its total today (small). An app
-  cannot resize a placed widget, so with the timer on the tiles are drawn
-  flatter (`timerTileSize`, 100 x 38 instead of 100 x 52, icons scaled
-  with the height): they keep the full width of a 4 x 1 widget and give up
-  the 20 dp timer row in height. Drawing them at the old shape made them
-  about 20 % smaller in both directions.
+  cannot resize a placed widget, so with the timer on the tiles give up
+  the 20 dp timer row in height and get flatter.
+- Tiles are sized to the widget: the provider reports the widget's size
+  and density (`OPTION_APPWIDGET_MIN_WIDTH` / `MAX_HEIGHT`, on placement
+  and on resize) and asks the app for a redraw (`timetracker://redraw`).
+  Each tile fills its slot (a quarter of the width, half the height left
+  after the timer row) but is never taller than an app tile (64 dp + 6 dp
+  padding), so a widget stretched tall does not stretch the tiles; the rows
+  then stack from the top. Icons scale with the tile, up to the app's
+  size. Before a size is reported, a 4 x 1 default (71 x 37 dp, 71 x 27
+  with the timer) is used. Launchers shape cells differently (the FP5's
+  are taller than the emulator's), which is why fixed tiles looked compact
+  on one and gappy on the other.
 - Both are Android `Chronometer`s, so they tick on their own without
   polling. The Dart side stores the session start, today's closed time and
   the day end; the provider computes the bases. Today's closed time is cut
@@ -822,6 +830,10 @@ name, the database file `time_tracker.db`, the backup `format` tag
   (a glow stayed after switching to Flat).
 - The Chronometer format is `MM:SS` / `H:MM:SS`, not the app's `0:05:09`.
 - The widget shows empty slots as in the app (outline and "+"). Tapping an
-  empty slot opens the app. Tapping the background does nothing: it gets
+  empty slot opens "Set up activity" for that slot in the app (link
+  `timetracker://setup?position=<n>`, on the Track tab), whether the app
+  was running or not. Nothing opens over a sheet or page that is already
+  open (it may hold unsaved input), or when the slot was filled since the
+  widget was drawn; the app just comes to the front. Tapping the background does nothing: it gets
   a handler that is dropped, since some launchers open the app on a tap
   without one.

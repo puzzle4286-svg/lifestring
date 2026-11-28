@@ -15,6 +15,7 @@ import 'package:time_tracker/services/activities/activity_service.dart';
 import 'package:time_tracker/services/goals/goal_service.dart';
 import 'package:time_tracker/services/history/entry_edit_service.dart';
 import 'package:time_tracker/services/history/history_service.dart';
+import 'package:time_tracker/services/widget/switcher_widget.dart';
 import 'package:time_tracker/widgets/activities/activity_tile.dart';
 import 'package:time_tracker/widgets/charts/day_strip.dart';
 import 'package:time_tracker/widgets/goals/goal_bars.dart';
@@ -41,7 +42,10 @@ void main() {
   });
   tearDown(() => f.close());
 
-  Future<void> pumpApp(WidgetTester tester) async {
+  Future<void> pumpApp(
+    WidgetTester tester, {
+    WidgetSetUpRequests? widgetSetUps,
+  }) async {
     await tester.pumpWidget(
       TimeTrackerApp(
         settings: settings,
@@ -55,6 +59,7 @@ void main() {
           uiState: uiState,
           db: f.db,
           clock: f.clock,
+          widgetSetUps: widgetSetUps,
         ),
       ),
     );
@@ -520,6 +525,68 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Enter a name'), findsOneWidget);
     expect(activities.atPosition(4), isNull);
+  });
+
+  group('empty widget tile', () {
+    testWidgets('that started the app opens "Set up activity" for its slot', (
+      tester,
+    ) async {
+      await pumpApp(tester, widgetSetUps: WidgetSetUpRequests(5));
+      await tester.pumpAndSettle();
+      expect(find.text('Set up activity'), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const Key('activity-name-field')),
+        'Reading',
+      );
+      await tapSave(tester);
+      await tester.pumpAndSettle();
+      expect(activities.atPosition(5)!.name, 'Reading');
+    });
+
+    testWidgets('tapped while the app runs switches to Track and opens it', (
+      tester,
+    ) async {
+      final setUps = WidgetSetUpRequests();
+      await pumpApp(tester, widgetSetUps: setUps);
+      await tester.tap(find.text('Settings'));
+      await tester.pumpAndSettle();
+      setUps.request(6);
+      await tester.pumpAndSettle();
+      expect(find.text('Set up activity'), findsOneWidget);
+      expect(find.byKey(const Key('activity-tile-6')), findsOneWidget);
+    });
+
+    testWidgets('does nothing for a slot filled since, or over a sheet', (
+      tester,
+    ) async {
+      final setUps = WidgetSetUpRequests();
+      await pumpApp(tester, widgetSetUps: setUps);
+      setUps.request(1); // Free time, from the fixture
+      await tester.pumpAndSettle();
+      expect(find.text('Set up activity'), findsNothing);
+
+      await tester.tap(find.byKey(const Key('activity-tile-4')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('activity-name-field')),
+        'Unsaved',
+      );
+      setUps.request(5);
+      await tester.pumpAndSettle();
+      expect(find.text('Set up activity'), findsOneWidget);
+      expect(find.text('Unsaved'), findsOneWidget);
+    });
+  });
+
+  test('setup links', () {
+    expect(setupTargetPosition(Uri.parse('timetracker://setup?position=3')), 3);
+    expect(
+      setupTargetPosition(Uri.parse('timetracker://setup?position=9')),
+      isNull,
+    );
+    expect(setupTargetPosition(Uri.parse('timetracker://setup')), isNull);
+    expect(setupTargetPosition(Uri.parse('timetracker://switch?id=3')), isNull);
+    expect(setupTargetPosition(null), isNull);
   });
 
   testWidgets('an empty slot can be set up', (tester) async {

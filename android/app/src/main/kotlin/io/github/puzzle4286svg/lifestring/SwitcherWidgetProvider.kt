@@ -13,6 +13,7 @@ import android.os.SystemClock
 import android.view.View
 import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetBackgroundIntent
+import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetPlugin
 import es.antonborri.home_widget.HomeWidgetProvider
 import java.util.Calendar
@@ -40,8 +41,10 @@ class SwitcherWidgetProvider : HomeWidgetProvider() {
         appWidgetIds: IntArray,
         widgetData: SharedPreferences,
     ) {
+        appWidgetIds.firstOrNull()?.let {
+            reportSize(context, appWidgetManager.getAppWidgetOptions(it))
+        }
         val views = RemoteViews(context.packageName, R.layout.switcher_widget)
-        val openApp = openAppIntent(context)
         // The background does nothing. It needs a handler all the same:
         // some launchers open the app on a tap that has none.
         views.setOnClickPendingIntent(R.id.widget_root, ignoredTap(context))
@@ -56,16 +59,20 @@ class SwitcherWidgetProvider : HomeWidgetProvider() {
             }
             views.setViewVisibility(viewId, View.VISIBLE)
             views.setImageViewBitmap(viewId, bitmap)
-            // An empty slot ("+") opens the app, where it can be set up.
+            // An empty slot ("+") opens "Set up activity" for it in the app.
             val tap = if (id == null) {
-                openApp
+                HomeWidgetLaunchIntent.getActivity(
+                    context,
+                    MainActivity::class.java,
+                    Uri.parse("timetracker://setup?position=$position"),
+                )
             } else {
                 HomeWidgetBackgroundIntent.getBroadcast(
                     context,
                     Uri.parse("timetracker://switch?id=$id"),
                 )
             }
-            tap?.let { views.setOnClickPendingIntent(viewId, it) }
+            views.setOnClickPendingIntent(viewId, tap)
         }
         updateTimer(context, views, widgetData)
         appWidgetManager.updateAppWidget(appWidgetIds, views)
@@ -122,6 +129,54 @@ class SwitcherWidgetProvider : HomeWidgetProvider() {
         scheduleMidnightUpdate(context, dayEnd)
     }
 
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: android.os.Bundle,
+    ) {
+        super.onAppWidgetOptionsChanged(
+            context,
+            appWidgetManager,
+            appWidgetId,
+            newOptions,
+        )
+        reportSize(context, newOptions)
+    }
+
+    /**
+     * Stores the widget's size for the Dart side, which draws the tiles in
+     * the shape of its slots (D62), and asks it to redraw when the size
+     * changed. Portrait: the smallest width and the largest height. With
+     * several widgets, the last one reported wins: they share the tiles.
+     */
+    private fun reportSize(context: Context, options: android.os.Bundle) {
+        val width = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
+        val height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT)
+        if (width <= 0 || height <= 0) return
+        val data = HomeWidgetPlugin.getData(context)
+        val density = context.resources.displayMetrics.density.toString()
+        if (data.getString("widget_width", null) == "$width" &&
+            data.getString("widget_height", null) == "$height" &&
+            data.getString("widget_density", null) == density
+        ) {
+            return
+        }
+        data.edit()
+            .putString("widget_width", "$width")
+            .putString("widget_height", "$height")
+            .putString("widget_density", density)
+            .apply()
+        try {
+            HomeWidgetBackgroundIntent.getBroadcast(
+                context,
+                Uri.parse("timetracker://redraw"),
+            ).send()
+        } catch (_: PendingIntent.CanceledException) {
+            // Redrawn the next time the app syncs the widget.
+        }
+    }
+
     /**
      * Redraws on a clock change: the timers count from elapsedRealtime, the
      * stored times are wall-clock times.
@@ -157,18 +212,6 @@ class SwitcherWidgetProvider : HomeWidgetProvider() {
             .setAction(ACTION_IGNORED_TAP),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
-
-    /** Opens the app with its current launcher icon (activity-alias). */
-    private fun openAppIntent(context: Context): PendingIntent? {
-        val launch = context.packageManager
-            .getLaunchIntentForPackage(context.packageName) ?: return null
-        return PendingIntent.getActivity(
-            context,
-            0,
-            launch,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-    }
 
     private fun startOfDay(millis: Long): Long = Calendar.getInstance().apply {
         timeInMillis = millis
