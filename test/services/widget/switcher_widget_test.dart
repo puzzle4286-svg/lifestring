@@ -241,6 +241,19 @@ void main() {
       );
     });
 
+    test('every widget size reported, each drawn once', () {
+      // Home screen and two lock-screen widgets, two of the same size.
+      expect(
+        SwitcherWidget.reportedSizes('8=379x130;11=300x200;17=300x200'),
+        {'379x130', '300x200'},
+      );
+      expect(SwitcherWidget.reportedSizes(null), isEmpty);
+      expect(SwitcherWidget.reportedSizes('8=x;9=0x5;bad'), isEmpty);
+      expect(SwitcherWidget.parseSize('379x130'), const Size(379, 130));
+      expect(SwitcherWidget.imageKey(3), 'slot_3_image');
+      expect(SwitcherWidget.imageKey(3, '379x130'), 'slot_3_image_379x130');
+    });
+
     test(
       'icons are as in the app on app-sized tiles, smaller in flat ones',
       () {

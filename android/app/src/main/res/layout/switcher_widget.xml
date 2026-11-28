@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Home-screen task switcher (D49): 2 x 4 tiles from the top. The tile
+<!-- Home-screen task switcher (D49): 2 x 4 tiles at the bottom. The tile
      images have the shape of one slot of this widget, at most as tall as
      the app's tiles (D62); the rows take their height (adjustViewBounds),
-     so any space left is below the tiles. The optional timer row (D62)
+     so any space left is above the tiles (and the timer), toward the
+     thumb-far end, as in the app. The optional timer row (D62)
      sits above them, left-aligned, 20 dp high
      (SwitcherWidget.timerRowHeight), and is gone unless turned on in
      Settings. Tapping an empty slot opens "Set up activity" for it; the
@@ -12,6 +13,7 @@
     android:layout_width="match_parent"
     android:clipChildren="false"
     android:layout_height="match_parent"
+    android:gravity="bottom"
     android:orientation="vertical">
     <!-- Styled like the app's header (D62): the session in the primary
          colour, today's total in onSurfaceVariant, both medium weight.

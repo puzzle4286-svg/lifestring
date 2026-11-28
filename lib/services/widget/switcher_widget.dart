@@ -60,11 +60,34 @@ abstract final class SwitcherWidget {
   /// Device pixels per dp when the provider has not reported it.
   static const defaultPixelRatio = 3.0;
 
-  /// The widget's size in dp and the screen density, as reported by the
-  /// provider (portrait: smallest width, largest height).
-  static const widgetWidthKey = 'widget_width';
-  static const widgetHeightKey = 'widget_height';
+  /// Every placed widget's size in dp, `<id>=<width>x<height>;…`, and the
+  /// screen density, as reported by the provider (portrait: smallest
+  /// width, largest height). Widgets can differ in size, even in other
+  /// hosts (e.g. a lock-screen widget app), so tiles are drawn per size.
+  static const widgetSizesKey = 'widget_sizes';
   static const densityKey = 'widget_density';
+
+  /// The sizes tiles were last drawn for, to remove those no widget has.
+  static const drawnSizesKey = 'widget_drawn_sizes';
+
+  /// The distinct `<width>x<height>` sizes in a [widgetSizesKey] value.
+  static Set<String> reportedSizes(String? value) => {
+    for (final entry in (value ?? '').split(';'))
+      if (entry.split('=') case [_, final size] when parseSize(size) != null)
+        size,
+  };
+
+  /// `<width>x<height>` in dp as a [Size].
+  static Size? parseSize(String key) {
+    if (key.split('x') case [final w, final h]) {
+      final width = int.tryParse(w);
+      final height = int.tryParse(h);
+      if (width != null && height != null && width > 0 && height > 0) {
+        return Size(width.toDouble(), height.toDouble());
+      }
+    }
+    return null;
+  }
 
   /// One slot of the 2 x 4 grid in a [widget] of that size (dp): a quarter
   /// of the width and half the height left by the timer row, but never
@@ -80,7 +103,11 @@ abstract final class SwitcherWidget {
   }
 
   static String idKey(int position) => 'slot_${position}_id';
-  static String imageKey(int position) => 'slot_${position}_image';
+
+  /// The tile image at [position] for widgets of [size]
+  /// (`<width>x<height>`), or the default one used before a size is known.
+  static String imageKey(int position, [String? size]) =>
+      size == null ? 'slot_${position}_image' : 'slot_${position}_image_$size';
 
   /// Timer row (D62). Times are milliseconds since the epoch, as strings;
   /// the provider turns them into self-ticking Chronometers.
@@ -114,33 +141,52 @@ abstract final class SwitcherWidget {
     try {
       final state = await SwitcherState.load(db);
       final scheme = state.colorScheme;
-      Future<double?> reported(String key) async =>
-          double.tryParse(await HomeWidget.getWidgetData<String>(key) ?? '');
-      final width = await reported(widgetWidthKey);
-      final height = await reported(widgetHeightKey);
-      final size = tileSizeFor(
-        width != null && height != null ? Size(width, height) : null,
-        timer: state.timer != null,
-      );
-      final pixelRatio = await reported(densityKey) ?? defaultPixelRatio;
+      Future<String?> read(String key) => HomeWidget.getWidgetData<String>(key);
+      final pixelRatio =
+          double.tryParse(await read(densityKey) ?? '') ?? defaultPixelRatio;
+      final sizes = reportedSizes(await read(widgetSizesKey));
+      // Tiles of sizes no widget has any more are removed with their files.
+      for (final old in reportedSizes(await read(drawnSizesKey))) {
+        if (sizes.contains(old)) continue;
+        for (var position = 1; position <= 8; position++) {
+          await HomeWidget.saveWidgetData<String>(
+            imageKey(position, old),
+            null,
+          );
+        }
+      }
       for (var position = 1; position <= 8; position++) {
         final activity = state.at(position);
-        final png = await renderTile(
-          activity,
-          size: size,
-          pixelRatio: pixelRatio,
-          active: activity != null && activity.id == state.activeId,
-          scheme: scheme,
-          neon: state.style == AppStyle.neon,
-          filter: styleFilter(state.style),
-        );
-        await HomeWidget.saveFile(imageKey(position), png, extension: 'png');
+        // The default tiles (null) for widgets whose size is not known yet.
+        for (final key in <String?>[null, ...sizes]) {
+          final png = await renderTile(
+            activity,
+            size: tileSizeFor(
+              key == null ? null : parseSize(key),
+              timer: state.timer != null,
+            ),
+            pixelRatio: pixelRatio,
+            active: activity != null && activity.id == state.activeId,
+            scheme: scheme,
+            neon: state.style == AppStyle.neon,
+            filter: styleFilter(state.style),
+          );
+          await HomeWidget.saveFile(
+            imageKey(position, key),
+            png,
+            extension: 'png',
+          );
+        }
         // No id: an empty slot, which opens the app to set it up.
         await HomeWidget.saveWidgetData<String>(
           idKey(position),
           activity == null ? null : '${activity.id}',
         );
       }
+      await HomeWidget.saveWidgetData<String>(
+        drawnSizesKey,
+        [for (final size in sizes) '0=$size'].join(';'),
+      );
       await HomeWidget.saveWidgetData<String>(
         timerShownKey,
         '${state.timer != null}',

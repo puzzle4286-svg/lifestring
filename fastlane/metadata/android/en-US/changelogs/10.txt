@@ -1,0 +1,2 @@
+- Widget: with several widgets (e.g. a lock-screen widget app), each gets tiles sized for itself; before, the bottom row could be squeezed
+- Widget: in a tall widget the tiles and timer sit at the bottom

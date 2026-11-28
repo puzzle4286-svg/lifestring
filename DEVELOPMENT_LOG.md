@@ -818,3 +818,18 @@ Home-screen with distinct headings.
 - 312 tests pass, including every setting surviving backup and restore.
 - On the FP5 and the emulator: timers in step, Flat/Neon, setup from a
   running and a cold-started app, tiles at both launchers' sizes.
+
+## 2026-11-28 – 0.6.1: tiles per widget size
+
+**Requested**: the released app's widget squeezed its bottom row while
+the dev one did not; tiles at the bottom of a tall widget.
+
+**Work completed**
+- Cause: the released app also had two widgets in a lock-screen widget
+  app; all shared tiles drawn for the first widget's size. Each widget now
+  reports its size (`widget_sizes`), tiles are drawn per distinct size and
+  each widget shows its own (D62).
+- Widget root gravity bottom.
+
+**Testing performed**
+- 313 tests pass. On the FP5 (release build, three widgets): equal rows.

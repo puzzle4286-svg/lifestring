@@ -41,9 +41,23 @@ class SwitcherWidgetProvider : HomeWidgetProvider() {
         appWidgetIds: IntArray,
         widgetData: SharedPreferences,
     ) {
-        appWidgetIds.firstOrNull()?.let {
-            reportSize(context, appWidgetManager.getAppWidgetOptions(it))
+        reportSizes(context, appWidgetManager)
+        // Each widget gets the tiles drawn for its own size: the same app can
+        // have widgets of different sizes, even in other hosts.
+        for (appWidgetId in appWidgetIds) {
+            val size = sizeKey(appWidgetManager.getAppWidgetOptions(appWidgetId))
+            appWidgetManager.updateAppWidget(
+                appWidgetId,
+                buildViews(context, widgetData, size),
+            )
         }
+    }
+
+    private fun buildViews(
+        context: Context,
+        widgetData: SharedPreferences,
+        size: String?,
+    ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.switcher_widget)
         // The background does nothing. It needs a handler all the same:
         // some launchers open the app on a tap that has none.
@@ -51,8 +65,12 @@ class SwitcherWidgetProvider : HomeWidgetProvider() {
         tiles.forEachIndexed { index, viewId ->
             val position = index + 1
             val id = widgetData.getString("slot_${position}_id", null)
-            val bitmap = widgetData.getString("slot_${position}_image", null)
-                ?.let { BitmapFactory.decodeFile(it) }
+            // Tiles for this widget's size; before the app has drawn them,
+            // the default ones.
+            val bitmap = (
+                size?.let { widgetData.getString("slot_${position}_image_$it", null) }
+                    ?: widgetData.getString("slot_${position}_image", null)
+                )?.let { BitmapFactory.decodeFile(it) }
             if (bitmap == null) {
                 views.setViewVisibility(viewId, View.INVISIBLE)
                 return@forEachIndexed
@@ -75,7 +93,7 @@ class SwitcherWidgetProvider : HomeWidgetProvider() {
             views.setOnClickPendingIntent(viewId, tap)
         }
         updateTimer(context, views, widgetData)
-        appWidgetManager.updateAppWidget(appWidgetIds, views)
+        return views
     }
 
     private fun updateTimer(
@@ -141,31 +159,31 @@ class SwitcherWidgetProvider : HomeWidgetProvider() {
             appWidgetId,
             newOptions,
         )
-        reportSize(context, newOptions)
+        reportSizes(context, appWidgetManager)
     }
 
     /**
-     * Stores the widget's size for the Dart side, which draws the tiles in
-     * the shape of its slots (D62), and asks it to redraw when the size
-     * changed. Portrait: the smallest width and the largest height. With
-     * several widgets, the last one reported wins: they share the tiles.
+     * Stores every widget's size for the Dart side, which draws tiles in the
+     * shape of each size's slots (D62), and asks it to redraw when a size
+     * changed: `<id>=<width>x<height>;…` in dp, plus the screen density.
      */
-    private fun reportSize(context: Context, options: android.os.Bundle) {
-        val width = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
-        val height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT)
-        if (width <= 0 || height <= 0) return
+    private fun reportSizes(context: Context, manager: AppWidgetManager) {
+        val ids = manager.getAppWidgetIds(
+            ComponentName(context, SwitcherWidgetProvider::class.java),
+        )
+        val sizes = ids.sorted().mapNotNull { id ->
+            sizeKey(manager.getAppWidgetOptions(id))?.let { "$id=$it" }
+        }.joinToString(";")
         val data = HomeWidgetPlugin.getData(context)
         val density = context.resources.displayMetrics.density.toString()
-        if (data.getString("widget_width", null) == "$width" &&
-            data.getString("widget_height", null) == "$height" &&
-            data.getString("widget_density", null) == density
+        if (data.getString(SIZES_KEY, null) == sizes &&
+            data.getString(DENSITY_KEY, null) == density
         ) {
             return
         }
         data.edit()
-            .putString("widget_width", "$width")
-            .putString("widget_height", "$height")
-            .putString("widget_density", density)
+            .putString(SIZES_KEY, sizes)
+            .putString(DENSITY_KEY, density)
             .apply()
         try {
             HomeWidgetBackgroundIntent.getBroadcast(
@@ -175,6 +193,16 @@ class SwitcherWidgetProvider : HomeWidgetProvider() {
         } catch (_: PendingIntent.CanceledException) {
             // Redrawn the next time the app syncs the widget.
         }
+    }
+
+    /**
+     * A widget's size as `<width>x<height>` in dp, the suffix of its tile
+     * images. Portrait: the smallest width and the largest height.
+     */
+    private fun sizeKey(options: android.os.Bundle): String? {
+        val width = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
+        val height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT)
+        return if (width > 0 && height > 0) "${width}x$height" else null
     }
 
     /**
@@ -252,6 +280,8 @@ class SwitcherWidgetProvider : HomeWidgetProvider() {
     }
 
     private companion object {
+        const val SIZES_KEY = "widget_sizes"
+        const val DENSITY_KEY = "widget_density"
         const val ACTION_IGNORED_TAP =
             "io.github.puzzle4286svg.lifestring.action.WIDGET_BACKGROUND_TAP"
     }

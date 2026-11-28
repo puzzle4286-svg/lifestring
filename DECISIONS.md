@@ -800,11 +800,16 @@ name, the database file `time_tracker.db`, the backup `format` tag
   Each tile fills its slot (a quarter of the width, half the height left
   after the timer row) but is never taller than an app tile (64 dp + 6 dp
   padding), so a widget stretched tall does not stretch the tiles; the rows
-  then stack from the top. Icons scale with the tile, up to the app's
-  size. Before a size is reported, a 4 x 1 default (71 x 37 dp, 71 x 27
+  then sit at the bottom with the timer row above them, like the app's
+  grid. Icons scale with the tile, up to the app's size. Before a size is reported, a 4 x 1 default (71 x 37 dp, 71 x 27
   with the timer) is used. Launchers shape cells differently (the FP5's
   are taller than the emulator's), which is why fixed tiles looked compact
   on one and gappy on the other.
+- Every placed widget reports its size (`widget_sizes`,
+  `<id>=<w>x<h>;…`), including ones in other hosts such as a lock-screen
+  widget app. Tiles are drawn once per distinct size and each widget shows
+  its own; sizes no widget has any more are removed. In 0.6.0 all widgets
+  shared the first one's tiles, so another's bottom row was squeezed.
 - Both are Android `Chronometer`s, so they tick on their own without
   polling. The Dart side stores the session start, today's closed time and
   the day end; the provider computes the bases. Today's closed time is cut

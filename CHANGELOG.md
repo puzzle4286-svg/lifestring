@@ -5,6 +5,18 @@ explicitly under **Database**.
 
 ## [Unreleased]
 
+## [0.6.1] – 2026-11-28
+
+### Fixed
+- Widget: with several widgets (e.g. one on the home screen and one in a
+  lock-screen widget app), each gets tiles drawn for its own size; before,
+  all shared the first one's, so the bottom row of another could be
+  squeezed.
+
+### Changed
+- Widget: in a widget taller than the tiles need, the tiles (and the timer)
+  sit at the bottom.
+
 ## [0.6.0] – 2026-11-28
 
 ### Added
