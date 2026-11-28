@@ -7,6 +7,7 @@ import '../../services/export/backup_format.dart';
 import '../../services/export/backup_service.dart';
 import '../../util/clock.dart';
 import '../../util/date_format.dart';
+import '../settings/settings_headings.dart';
 
 /// What Settings needs for export, backup and restore.
 class DataActions {
@@ -172,7 +173,7 @@ class _DataSectionState extends State<DataSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Data', style: Theme.of(context).textTheme.titleMedium),
+        const SettingsHeading('Data'),
         ListTile(
           contentPadding: EdgeInsets.zero,
           enabled: !_busy,

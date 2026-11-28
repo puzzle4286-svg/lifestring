@@ -7,6 +7,7 @@ import '../../repositories/ui_state_store.dart';
 import '../../services/app_icon/app_icon_service.dart';
 import '../../widgets/data/data_section.dart';
 import '../../widgets/settings/app_icon_section.dart';
+import '../../widgets/settings/settings_headings.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -69,7 +70,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           children: [
-            Text('Appearance', style: text.titleMedium),
+            const SettingsHeading('Theme'),
+            const SizedBox(height: 12),
+            const SettingsSubheading('Appearance'),
             const SizedBox(height: 12),
             SegmentedButton<AppearanceMode>(
               showSelectedIcon: false,
@@ -93,8 +96,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               selected: {current.appearance},
               onSelectionChanged: (s) => settings.setAppearance(s.single),
             ),
-            const SizedBox(height: 24),
-            Text('Style', style: text.titleMedium),
+            const SizedBox(height: 16),
+            const SettingsSubheading('Style'),
             const SizedBox(height: 12),
             SegmentedButton<AppStyle>(
               key: const Key('style-selector'),
@@ -119,8 +122,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               selected: {current.style},
               onSelectionChanged: (s) => settings.setStyle(s.single),
             ),
-            const SizedBox(height: 24),
-            Text('Accent colour', style: text.titleMedium),
+            const SizedBox(height: 16),
+            const SettingsSubheading('Accent colour'),
             if (current.style.colourless)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
@@ -155,7 +158,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             if (widget.appIcon != null || widget.widgetSettings) ...[
               const SizedBox(height: 24),
-              Text('Home-screen', style: text.titleMedium),
+              const SettingsHeading('Home-screen'),
             ],
             if (widget.appIcon case final appIcon?) ...[
               const SizedBox(height: 12),
@@ -166,7 +169,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               SwitchListTile(
                 key: const Key('widget-timer'),
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Widget timer'),
+                title: const Text(
+                  'Widget timer',
+                  style: TextStyle(fontStyle: FontStyle.italic),
+                ),
                 subtitle: const Text(
                   'Current session and today\'s total above the widget\'s tiles',
                 ),

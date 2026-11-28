@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../services/app_icon/app_icon_service.dart';
+import 'settings_headings.dart';
 
 /// "App icon" in Settings: the launcher icons side by side; tap to switch.
 class AppIconSection extends StatefulWidget {
@@ -51,7 +52,7 @@ class _AppIconSectionState extends State<AppIconSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('App icon', style: Theme.of(context).textTheme.titleSmall),
+        const SettingsSubheading('App icon'),
         const SizedBox(height: 12),
         Row(
           children: [

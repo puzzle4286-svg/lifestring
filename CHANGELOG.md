@@ -11,7 +11,8 @@ explicitly under **Database**.
   the app's timer (accent colour, glowing with Neon).
 
 ### Changed
-- Settings: App icon is now under Home-screen.
+- Settings: App icon is now under Home-screen; Appearance, Style and Accent
+  colour are under Theme.
 - The widget shows empty slots ("+"); tapping one opens "Set up activity"
   for that slot in the app. Tapping
   the widget's background does nothing.
