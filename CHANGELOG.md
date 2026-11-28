@@ -5,6 +5,8 @@ explicitly under **Database**.
 
 ## [Unreleased]
 
+## [0.6.0] – 2026-11-28
+
 ### Added
 - Settings → Home-screen → Widget timer: the widget shows the current session
   and today's total of the running activity above the tiles, styled like
@@ -14,10 +16,11 @@ explicitly under **Database**.
 - Settings: App icon is now under Home-screen; Appearance, Style and Accent
   colour are under Theme.
 - The widget shows empty slots ("+"); tapping one opens "Set up activity"
-  for that slot in the app. Tapping
-  the widget's background does nothing.
+  for that slot in the app. Tapping the widget's background does nothing.
 - Widget tiles fill the widget at any size, up to the height of the app's
   tiles.
+- Settings: group headings are bold in the accent colour; subheadings are
+  smaller, italic and muted.
 
 ## [0.5.0] – 2026-11-23
 

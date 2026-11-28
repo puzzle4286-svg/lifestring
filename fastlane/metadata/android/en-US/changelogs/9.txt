@@ -1,0 +1,3 @@
+- Widget timer (Settings → Home-screen): current session and today's total above the widget's tiles
+- Empty widget tiles show "+"; tapping one sets up that slot in the app
+- Widget tiles fill the widget at any size; Settings grouped under Theme and Home-screen

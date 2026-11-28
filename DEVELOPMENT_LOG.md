@@ -796,3 +796,25 @@ screen, synced selection, same line size for Day/Week/Month, no Neon glow.
   goal bars, day timeline, app, landscape and History-jump tests pass.
 - On the phone (dev build): Day, Week (19–25 Oct), Year, Neon style, and
   the period carried back to Insights.
+
+## 2026-11-28 – 0.6.0: Widget timer; widget setup tiles
+
+**Requested**: a Settings toggle for a timer on the widget; empty widget
+tiles; tapping an empty tile sets up that slot; tiles sized to the widget
+but no taller than the app's; Settings grouped under Theme and
+Home-screen with distinct headings.
+
+**Work completed**
+- Widget timer (D62): two Chronometers (session, today's total) styled like
+  the app's timer, Neon glow via generated shadow variants
+  (`tool/generate_widget_glow.py`), midnight and clock-change redraws.
+- Empty tiles open "Set up activity" via `timetracker://setup?position=N`;
+  the background tap does nothing.
+- The provider reports the widget size; tiles fill each slot, capped at
+  70 dp.
+- Settings: `SettingsHeading` / `SettingsSubheading`.
+
+**Testing performed**
+- 312 tests pass, including every setting surviving backup and restore.
+- On the FP5 and the emulator: timers in step, Flat/Neon, setup from a
+  running and a cold-started app, tiles at both launchers' sizes.
