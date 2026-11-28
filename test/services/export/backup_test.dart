@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:time_tracker/database/schema.dart';
 import 'package:time_tracker/database/seed.dart';
+import 'package:time_tracker/models/app_settings.dart';
+import 'package:time_tracker/repositories/settings_repository.dart';
 import 'package:time_tracker/services/export/backup_format.dart';
 import 'package:time_tracker/services/export/backup_service.dart';
 import 'package:time_tracker/util/timestamps.dart';
@@ -87,6 +89,31 @@ void main() {
       FakeClock(monday9),
     ).restore(BackupData.parse(bytes));
     expect(await dump(other), before);
+    await other.close();
+  });
+
+  test('every setting survives backup and restore', () async {
+    // Not the defaults, so a setting left out of the backup would show.
+    const settings = AppSettings(
+      appearance: AppearanceMode.black,
+      accent: AccentPalette.slate,
+      style: AppStyle.grayscale,
+      widgetTimer: true,
+    );
+    await SettingsRepository(f.db).save(settings);
+    final bytes = (await backup.createBackup()).encode();
+
+    final other = await openTestDatabase();
+    await ensureSeeded(other, DateTime(2025));
+    await BackupService(
+      other,
+      FakeClock(monday9),
+    ).restore(BackupData.parse(bytes));
+    final restored = await SettingsRepository(other).load();
+    expect(restored.appearance, settings.appearance);
+    expect(restored.accent, settings.accent);
+    expect(restored.style, settings.style);
+    expect(restored.widgetTimer, isTrue);
     await other.close();
   });
 
