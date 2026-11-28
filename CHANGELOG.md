@@ -5,6 +5,16 @@ explicitly under **Database**.
 
 ## [Unreleased]
 
+### Added
+- Settings → Home-screen → Widget timer: the widget shows the current session
+  and today's total of the running activity above the tiles, styled like
+  the app's timer (accent colour, glowing with Neon).
+
+### Changed
+- Settings: App icon is now under Home-screen.
+- The widget shows empty slots ("+"); tapping one opens the app. Tapping
+  the widget's background does nothing.
+
 ## [0.5.0] – 2026-11-23
 
 ### Added

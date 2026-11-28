@@ -7,6 +7,7 @@ import 'package:time_tracker/app/theme/app_theme.dart';
 import 'package:time_tracker/models/activity.dart';
 import 'package:time_tracker/models/app_settings.dart';
 import 'package:time_tracker/repositories/settings_repository.dart';
+import 'package:time_tracker/services/tracking/time_range.dart';
 import 'package:time_tracker/services/widget/switcher_widget.dart';
 import 'package:time_tracker/widgets/activities/activity_tile.dart';
 
@@ -108,6 +109,30 @@ void main() {
       );
     });
 
+    test('is flatter with the timer on, with the icon still centred', () async {
+      const size = SwitcherWidget.timerTileSize;
+      final png = await SwitcherWidget.renderTile(
+        _activity(icon: 'work'),
+        active: false,
+        scheme: scheme,
+        neon: false,
+        size: size,
+      );
+      final codec = await ui.instantiateImageCodec(png);
+      final image = (await codec.getNextFrame()).image;
+      expect(image.width, size.width * SwitcherWidget.pixelRatio);
+      expect(image.height, size.height * SwitcherWidget.pixelRatio);
+      image.dispose();
+      final fill = ActivityTile.fillFor(scheme, _activity(), false);
+      expect(await _pixel(png, const Offset(50, 6)), _closeTo(fill));
+      expect(await _pixel(png, const Offset(50, 32)), _closeTo(fill));
+      var drawn = 0;
+      for (var x = 40.0; x <= 60; x += 0.5) {
+        if (!_close(await _pixel(png, Offset(x, 19)), fill)) drawn++;
+      }
+      expect(drawn, greaterThan(4), reason: 'icon across the middle');
+    });
+
     test('is filled like the app tile: full colour when active, muted '
         'otherwise', () async {
       final a = _activity();
@@ -166,6 +191,20 @@ void main() {
         }
       }
     });
+
+    test('an empty slot is an outline with "+", no fill', () async {
+      final png = await SwitcherWidget.renderTile(
+        null,
+        active: false,
+        scheme: scheme,
+        neon: false,
+      );
+      const inside = Offset(SwitcherWidget.padding + 6, 26);
+      expect((await _pixel(png, inside)).a, 0);
+      const edge = Offset(SwitcherWidget.padding + 0.5, 26);
+      expect((await _pixel(png, edge)).a, greaterThan(0));
+      expect(await _drawnInCentre(png, Colors.transparent), greaterThan(40));
+    });
   });
 
   group('state from the database', () {
@@ -190,6 +229,26 @@ void main() {
       expect(state.activeId, f.study);
       expect(state.style, AppStyle.neon);
       expect(state.colorScheme.brightness, Brightness.light);
+      expect(state.timer, isNull, reason: 'the timer is off by default');
+    });
+
+    test('timer: session start and today\'s closed time', () async {
+      final f = await TrackingFixture.create(DateTime.utc(2026, 11, 12, 8));
+      addTearDown(f.db.close);
+      await SettingsRepository(f.db).save(const AppSettings(widgetTimer: true));
+      await f.service.reconcile();
+      await f.service.switchTo(f.study);
+      f.clock.advance(const Duration(minutes: 20));
+      await f.service.switchTo(f.gaming);
+      f.clock.advance(const Duration(minutes: 5));
+      await f.service.switchTo(f.study);
+      final started = f.clock.now();
+      f.clock.advance(const Duration(minutes: 3));
+
+      final timer = (await SwitcherState.load(f.db)).timer!;
+      expect(timer.sessionStart, started);
+      expect(timer.closedToday, const Duration(minutes: 20));
+      expect(timer.dayEnd, nextLocalMidnight(started));
     });
   });
 

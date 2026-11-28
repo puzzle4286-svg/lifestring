@@ -15,6 +15,7 @@ class SettingsScreen extends StatefulWidget {
     required this.uiState,
     this.data,
     this.appIcon,
+    this.widgetSettings = false,
   });
 
   final SettingsController settings;
@@ -27,6 +28,9 @@ class SettingsScreen extends StatefulWidget {
 
   /// Launcher icon choice; the section is hidden when null (not Android).
   final AppIconService? appIcon;
+
+  /// Shows the home-screen widget options (Android only).
+  final bool widgetSettings;
 
   static const accentScrollKey = 'settings.accentScroll';
 
@@ -149,9 +153,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
-            if (widget.appIcon case final appIcon?) ...[
+            if (widget.appIcon != null || widget.widgetSettings) ...[
               const SizedBox(height: 24),
+              Text('Home-screen', style: text.titleMedium),
+            ],
+            if (widget.appIcon case final appIcon?) ...[
+              const SizedBox(height: 12),
               AppIconSection(service: appIcon),
+            ],
+            if (widget.widgetSettings) ...[
+              const SizedBox(height: 12),
+              SwitchListTile(
+                key: const Key('widget-timer'),
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Widget timer'),
+                subtitle: const Text(
+                  'Current session and today\'s total above the widget\'s tiles',
+                ),
+                value: current.widgetTimer,
+                onChanged: settings.setWidgetTimer,
+              ),
             ],
             if (widget.data case final data?) ...[
               const SizedBox(height: 24),

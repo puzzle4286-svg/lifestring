@@ -34,6 +34,7 @@ class AppShell extends StatefulWidget {
     required this.clock,
     this.data,
     this.appIcon,
+    this.widgetSettings = false,
   });
 
   final TrackingService tracking;
@@ -53,6 +54,9 @@ class AppShell extends StatefulWidget {
 
   /// Launcher icon choice in Settings; Android only.
   final AppIconService? appIcon;
+
+  /// Home-screen widget options in Settings; Android only.
+  final bool widgetSettings;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -128,6 +132,7 @@ class _AppShellState extends State<AppShell> {
             uiState: widget.uiState,
             data: widget.data,
             appIcon: widget.appIcon,
+            widgetSettings: widget.widgetSettings,
           ),
         ),
       },

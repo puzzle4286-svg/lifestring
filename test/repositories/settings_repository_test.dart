@@ -21,6 +21,7 @@ void main() {
     expect(s.appearance, const AppSettings().appearance);
     expect(s.accent, const AppSettings().accent);
     expect(s.neon, isFalse);
+    expect(s.widgetTimer, isFalse);
   });
 
   test('round-trips saved settings', () async {
@@ -29,9 +30,11 @@ void main() {
         appearance: AppearanceMode.black,
         accent: AccentPalette.rose,
         style: AppStyle.grayscale,
+        widgetTimer: true,
       ),
     );
     final s = await repo.load();
+    expect(s.widgetTimer, isTrue);
     expect(s.appearance, AppearanceMode.black);
     expect(s.accent, AccentPalette.rose);
     expect(s.style, AppStyle.grayscale);

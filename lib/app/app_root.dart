@@ -167,6 +167,7 @@ class _AppRootState extends State<AppRoot> {
           onRestored: _reload,
         ),
         appIcon: Platform.isAndroid ? const AppIconService() : null,
+        widgetSettings: Platform.isAndroid,
       ),
     );
   }

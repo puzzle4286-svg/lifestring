@@ -51,7 +51,7 @@ class _AppIconSectionState extends State<AppIconSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('App icon', style: Theme.of(context).textTheme.titleMedium),
+        Text('App icon', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 12),
         Row(
           children: [

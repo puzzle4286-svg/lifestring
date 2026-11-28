@@ -11,6 +11,7 @@ class SettingsRepository {
   static const _appearanceKey = 'appearance';
   static const _accentKey = 'accent';
   static const _styleKey = 'style';
+  static const _widgetTimerKey = 'widgetTimer';
 
   /// Before styles (D59) only Neon existed, stored as `true` / `false`.
   /// Read when there is no style yet, and still written so older versions
@@ -40,6 +41,11 @@ class SettingsRepository {
         values[_styleKey],
         values[_neonKey] == 'true' ? AppStyle.neon : defaults.style,
       ),
+      widgetTimer: switch (values[_widgetTimerKey]) {
+        'true' => true,
+        'false' => false,
+        _ => defaults.widgetTimer,
+      },
     );
   }
 
@@ -50,6 +56,7 @@ class SettingsRepository {
       _accentKey: settings.accent.name,
       _styleKey: settings.style.name,
       _neonKey: settings.neon.toString(),
+      _widgetTimerKey: settings.widgetTimer.toString(),
     }.entries) {
       batch.insert('settings', {
         'key': key,

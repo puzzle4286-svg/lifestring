@@ -46,12 +46,17 @@ class AppSettings {
     this.appearance = AppearanceMode.dark,
     this.accent = AccentPalette.teal,
     this.style = AppStyle.flat,
+    this.widgetTimer = false,
   });
 
   final AppearanceMode appearance;
   final AccentPalette accent;
 
   final AppStyle style;
+
+  /// Whether the home-screen widget shows the session and today's total of
+  /// the running activity above its tiles.
+  final bool widgetTimer;
 
   /// Neon look: glowing highlights (D48).
   bool get neon => style == AppStyle.neon;
@@ -60,9 +65,11 @@ class AppSettings {
     AppearanceMode? appearance,
     AccentPalette? accent,
     AppStyle? style,
+    bool? widgetTimer,
   }) => AppSettings(
     appearance: appearance ?? this.appearance,
     accent: accent ?? this.accent,
     style: style ?? this.style,
+    widgetTimer: widgetTimer ?? this.widgetTimer,
   );
 }

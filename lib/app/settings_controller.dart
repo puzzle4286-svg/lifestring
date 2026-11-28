@@ -21,6 +21,9 @@ class SettingsController extends ChangeNotifier {
   Future<void> setStyle(AppStyle style) =>
       _update(_settings.copyWith(style: style));
 
+  Future<void> setWidgetTimer(bool show) =>
+      _update(_settings.copyWith(widgetTimer: show));
+
   Future<void> _update(AppSettings next) async {
     // Persist first so the UI never shows a setting that was not saved.
     await _repository.save(next);
